@@ -24,9 +24,14 @@ public class JournalEntryController {
     @Autowired
     private UserEntryService userEntryService;
 
-    @GetMapping("{userName}")
+    @GetMapping("/{userName}")
     public ResponseEntity<?> getAllJournalEntriesOfUser(@PathVariable String userName) {
         User user = userEntryService.findByUserName(userName);
+
+        if (user == null) {
+            return new ResponseEntity<>("User not found: " + userName, HttpStatus.NOT_FOUND);
+        }
+
         List<JournalEntry> journalEntryList = user.getJournalEntries();
         if(journalEntryList !=  null && !journalEntryList.isEmpty()) {
             return new ResponseEntity<>(journalEntryList, HttpStatus.OK);
@@ -35,11 +40,15 @@ public class JournalEntryController {
 
     }
 
-    @PostMapping("{userName}")
+    @PostMapping("/{userName}")
     public ResponseEntity<?>  createEntry(@RequestBody JournalEntry myEntry, @PathVariable String userName) {
 
         try{
+            User user = userEntryService.findByUserName(userName);
 
+            if (user == null) {
+                return new ResponseEntity<>("User not found: " + userName, HttpStatus.NOT_FOUND);
+            }
             myEntry.setJournalDate(LocalDateTime.now());
             journalEntryService.saveEntry( myEntry, userName);
             return new ResponseEntity<>(myEntry, HttpStatus.CREATED);
@@ -51,7 +60,7 @@ public class JournalEntryController {
     }
 
 
-    @GetMapping("id/{myId}")
+    @GetMapping("/id/{myId}")
     public ResponseEntity<?> getEntry(@PathVariable ObjectId myId) {
         Optional<JournalEntry> journalEntry =  journalEntryService.findById(myId);
         if(journalEntry.isPresent()) {
@@ -61,7 +70,7 @@ public class JournalEntryController {
     }
 
 
-    @DeleteMapping("id/{userName}/{myId}")
+    @DeleteMapping("/id/{userName}/{myId}")
     public ResponseEntity<?> deleteEntry(@PathVariable ObjectId myId, @PathVariable String userName) {
         journalEntryService.deleteById(myId, userName);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
