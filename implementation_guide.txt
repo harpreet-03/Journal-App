@@ -1,0 +1,71 @@
+# Journal Application - Security Implementation Guide
+
+This document explains the changes made to implement Authentication and Role-Based Authorization in the Journal Application.
+
+## 1. Security Configuration (`SpringSecurity.java`)
+- Added `@EnableWebSecurity` to enable Web Security.
+- Defined a `SecurityFilterChain` bean to configure HTTP security.
+- **Authentication**: Using HTTP Basic authentication for simplicity.
+- **Authorization**:
+    - `/public/**`: Accessible to everyone (SignUp, Health Check).
+    - `/journal/**`, `/users/**`: Requires authentication (logged-in user).
+    - `/admin/**`: Requires `ADMIN` role.
+- **Password Encoding**: Added `BCryptPasswordEncoder` bean to securely hash passwords before storing them in MongoDB.
+- **UserDetailsService**: Integrated a custom `UserDetailsServiceImpl` to fetch user details from the database.
+
+## 2. User Entity (`User.java`)
+- Added a `List<String> roles` field to store user roles (e.g., "USER", "ADMIN").
+
+## 3. User Details Service (`UserDetailsServiceImpl.java`)
+- Implemented `UserDetailsService` interface.
+- Loads user from MongoDB using `UserEntryRepository`.
+- Converts our `User` entity to Spring Security's `UserDetails` object.
+
+## 4. User Service (`UserEntryService.java`)
+- Updated `saveNewUser` to encode passwords using `BCryptPasswordEncoder` before saving.
+- Added logic to assign default "USER" role to new signups.
+- Added `saveAdmin` method for creating administrative users.
+
+## 5. Controllers Refactoring
+- **PublicController**: New controller for public endpoints like `/public/signup`.
+- **AdminController**: New controller for administrative tasks like viewing all users, restricted to `ADMIN` role.
+- **JournalEntryController**:
+    - Removed `userName` from PathVariables.
+    - Uses `SecurityContextHolder.getContext().getAuthentication().getName()` to identify the logged-in user.
+    - This ensures users can only access/modify their OWN journal entries.
+- **UserEntryController**:
+    - Restricted to the logged-in user's own profile updates.
+
+## How to Test
+
+### 1. Register a New User
+- **URL**: `POST http://localhost:8080/public/signup`
+- **Body**:
+```json
+{
+    "userName": "john_doe",
+    "password": "password123"
+}
+```
+
+### 2. Access Journal Endpoints (Requires Auth)
+- Use Basic Auth with `john_doe` and `password123`.
+- **GET** `http://localhost:8080/journal` (Get all entries for john_doe)
+- **POST** `http://localhost:8080/journal` (Create entry for john_doe)
+
+### 3. Admin Access
+- You need to create an admin user first. You can use a temporary endpoint or manually update a user in MongoDB with the `ADMIN` role.
+- **URL**: `POST http://localhost:8080/admin/create-admin-user`
+- **Body**:
+```json
+{
+    "userName": "admin",
+    "password": "adminpassword"
+}
+```
+- Then use Basic Auth with `admin` to access:
+- **GET** `http://localhost:8080/admin/all-users`
+
+### 4. Security Verification
+- Try accessing `/journal` without authentication -> Should return `401 Unauthorized`.
+- Try accessing `/admin/all-users` with a normal user (`john_doe`) -> Should return `403 Forbidden`.

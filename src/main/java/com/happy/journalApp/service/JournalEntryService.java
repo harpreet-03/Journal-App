@@ -29,7 +29,7 @@ public class JournalEntryService {
             journalEntry.setJournalDate(LocalDateTime.now());
             JournalEntry saved = journalEntryRepository.save(journalEntry);
             user.getJournalEntries().add(saved);
-            userEntryService.saveEntry(user);
+            userEntryService.saveUser(user);
         } catch (Exception e) {
             System.out.println(e);
             throw new RuntimeException("An error occurred while saving the entry. ", e);
@@ -48,11 +48,21 @@ public class JournalEntryService {
         return journalEntryRepository.findById(id);
     }
 
-    public void deleteById(ObjectId id, String userName) {
-        User user = userEntryService.findByUserName(userName);
-        user.getJournalEntries().removeIf(x -> x.getId().equals(id));
-        userEntryService.saveEntry(user);
-        journalEntryRepository.deleteById(id);
+    @Transactional
+    public boolean deleteById(ObjectId id, String userName) {
+        boolean removed = false;
+        try {
+            User user = userEntryService.findByUserName(userName);
+            removed = user.getJournalEntries().removeIf(x -> x.getId().equals(id));
+            if (removed) {
+                userEntryService.saveUser(user);
+                journalEntryRepository.deleteById(id);
+            }
+        } catch (Exception e) {
+            System.out.println(e);
+            throw new RuntimeException("An error occurred while deleting the entry.", e);
+        }
+        return removed;
     }
 }
 

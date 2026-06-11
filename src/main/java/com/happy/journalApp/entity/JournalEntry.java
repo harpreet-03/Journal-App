@@ -11,7 +11,6 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import java.time.LocalDateTime;
 
 @Document(collection = "journal_entries")
-@Data
 @NoArgsConstructor
 public class JournalEntry {
     @Id
@@ -20,4 +19,35 @@ public class JournalEntry {
     private String journalContent;
     private LocalDateTime journalDate;
 
+    public ObjectId getId() {
+        return id;
+    }
+
+    public void setId(ObjectId id) {
+        this.id = id;
+    }
+
+    public String getJournalName() {
+        return journalName;
+    }
+
+    public void setJournalName(String journalName) {
+        this.journalName = journalName;
+    }
+
+    public String getJournalContent() {
+        return journalContent;
+    }
+
+    public void setJournalContent(String journalContent) {
+        this.journalContent = journalContent;
+    }
+
+    public LocalDateTime getJournalDate() {
+        return journalDate;
+    }
+
+    public void setJournalDate(LocalDateTime journalDate) {
+        this.journalDate = journalDate;
+    }
 }
